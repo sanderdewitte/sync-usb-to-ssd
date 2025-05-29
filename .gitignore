@@ -2,3 +2,6 @@
 *.done
 usb_temp/
 .usb_sync_chunks/
+
+# Ignore backup files
+*.bak
