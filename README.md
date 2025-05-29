@@ -18,8 +18,8 @@ Do **not** use this script if:
 
 ## ✅ Features
 
-- File-size based chunking (~3.5 GiB per chunk)
-- Automatic retry per chunk (up to 2 times)
+- File-size based chunking (~3.5 GiB per chunk, configurable)
+- Automatic retry per chunk (up to 2 times, configurable)
 - Resumable (tracks progress with `.done` markers)
 - Auto-unmounts devices before safe removal
 - Supports quiet and verbose modes
@@ -31,7 +31,7 @@ Do **not** use this script if:
 Make the script executable:
 
 ```bash
-chmod +x sync_usb_to_ssd.sh
+chmod u+x sync_usb_to_ssd.sh
 ```
 
 Run it with desired options:
