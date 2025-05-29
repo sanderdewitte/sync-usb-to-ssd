@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - 'sync_usb_to_ssd.sh'
+      - '.github/workflows/shellcheck.yml'
 
 jobs:
   shellcheck:
