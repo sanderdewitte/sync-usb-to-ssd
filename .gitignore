@@ -1,0 +1,4 @@
+# Ignore temporary and chunk files
+*.done
+usb_temp/
+.usb_sync_chunks/
