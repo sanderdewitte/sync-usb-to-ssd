@@ -3,7 +3,7 @@
 set -euo pipefail
 
 # === Configurable parameters ===
-CHUNK_SIZE_MB=3500
+CHUNK_SIZE_MB=4000
 STATE_DIR=".sync_usb_to_ssd_state"
 TEMP_DIR=".sync_usb_to_ssd_tmp"
 DONE_DIR=".sync_usb_chunks"
@@ -124,8 +124,8 @@ generate_chunk_lists() {
   local chunk_size_bytes=$((CHUNK_SIZE_MB * 1024 * 1024))
   local search_emoji="🔍"
   local check_emoji="✅"
-  local resume_emoji="♻️ "
-  local warning_emoji="⚠️ "
+  local resume_emoji="♻️"
+  local warning_emoji="⚠️"
 
   if [[ -z $(ls "$STATE_DIR"/chunk_*.list 2>/dev/null) ]]; then
     log "$search_emoji Splitting source files into chunks..."
