@@ -8,3 +8,4 @@
 
 # Ignore temporary files
 **/*.tmp
+**/file_list.txt
