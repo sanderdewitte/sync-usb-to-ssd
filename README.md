@@ -23,7 +23,6 @@ Do **not** use this script if:
 - Resumable (tracks progress with `.done` markers)
 - Auto-unmounts devices before safe removal
 - Supports quiet and verbose modes
-- Optional final verification step
 - No destructive operations
 
 ## 🔧 Usage
@@ -37,7 +36,7 @@ chmod u+x sync_usb_to_ssd.sh
 Run it with desired options:
 
 ```bash
-./sync_usb_to_ssd.sh [--noresume] [--verify] [--quiet] [--verbose]
+./sync_usb_to_ssd.sh [--noresume] [--quiet] [--verbose]
 ```
 
 ## 🗂 Options
@@ -45,7 +44,6 @@ Run it with desired options:
 | Flag         | Description                                       |
 |--------------|---------------------------------------------------|
 | `--noresume` | Ignore progress and re-copy all chunks            |
-| `--verify`   | Run `diff -rq` to verify SSD contents             |
 | `--quiet`    | Suppress most output                              |
 | `--verbose`  | Show full `rsync` output                          |
 | `--help`     | Show help                                         |
