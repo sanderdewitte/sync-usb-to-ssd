@@ -18,7 +18,7 @@ Do **not** use this script if:
 
 ## ✅ Features
 
-- File-size based chunking (~3.5 GiB per chunk, configurable)
+- File-size based chunking (~4 GiB per chunk, configurable)
 - Automatic retry per chunk (up to 2 times, configurable)
 - Resumable (tracks progress with `.done` markers)
 - Auto-unmounts devices before safe removal
