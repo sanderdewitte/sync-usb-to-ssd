@@ -239,13 +239,6 @@ main() {
       mount_point="/media/$USER/$mount_label"
       printf -v "$mount_point_var" '%s' "$mount_point"
 
-      # Generate chunk lists based on size (only once, only for source)
-      if [ "$device" == "src" ] && [ $CHUNKS_GENERATED == false ]; then
-        generate_chunk_lists
-        CHUNKS_GENERATED=true
-        CHUNK_COUNT=$(find "$STATE_DIR" -maxdepth 1 -type f -name 'chunk_*.list' 2>/dev/null | wc -l)
-      fi
-
       # Define sync direction, chunk source and target
       case "$device" in
         src)
@@ -259,6 +252,13 @@ main() {
           chunk_target="$DEST_MOUNT"
           ;;
       esac
+
+      # Generate chunk lists based on size (only once, only for source)
+      if [ "$device" == "src" ] && [ $CHUNKS_GENERATED == false ]; then
+        generate_chunk_lists
+        CHUNKS_GENERATED=true
+        CHUNK_COUNT=$(find "$STATE_DIR" -maxdepth 1 -type f -name 'chunk_*.list' 2>/dev/null | wc -l)
+      fi
 
       # Define rsync options
       RSYNC_OPTS=("--files-from=${CHUNK_FILE}")
