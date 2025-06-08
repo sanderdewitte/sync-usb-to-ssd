@@ -1,7 +1,10 @@
-# Ignore temporary and chunk files
-*.done
-usb_temp/
-.usb_sync_chunks/
+# Ignore chunk files
+**/chunk_*.list
+**/chunk_*.done
+.sync_usb_*/
 
 # Ignore backup files
-*.bak
+**/*.bak
+
+# Ignore temporary files
+**/*.tmp
