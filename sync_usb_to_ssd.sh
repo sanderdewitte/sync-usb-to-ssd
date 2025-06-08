@@ -220,7 +220,7 @@ main() {
     # Loop through devices: usb (source), then ssd (destination)
     for device in src dst; do
 
-      # Define device label and mountpoint variable name
+      # Define device label and mount point variable name
       case "$device" in
         src)
           label="USB stick"
@@ -232,7 +232,7 @@ main() {
           ;;
       esac
 
-      # Prompt for device insert and detect mountpoint
+      # Prompt for device insert and detect mount point
       mapfile -t before_mounts < <(ls -1 "/media/$USER" 2>/dev/null)
       prompt_insert_device "$label"
       mount_label=$(detect_newly_mounted_device "$label" "${before_mounts[@]}")
