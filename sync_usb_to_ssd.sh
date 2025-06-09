@@ -157,9 +157,9 @@ main() {
   fi
 
   # Setup directories
-  [[ -d "$STATE_DIR" ]] || mkdir -p "$STATE_DIR"
-  [[ -d "$DONE_DIR" ]]  || mkdir -p "$DONE_DIR"
-  [[ -d "$TEMP_DIR" ]]  || mkdir -p "$TEMP_DIR"
+  [ -d "$STATE_DIR" ] || mkdir -p "$STATE_DIR"
+  [ -d "$DONE_DIR" ]  || mkdir -p "$DONE_DIR"
+  [ -d "$TEMP_DIR" ]  || mkdir -p "$TEMP_DIR"
 
   # Declare main locals
   local \
