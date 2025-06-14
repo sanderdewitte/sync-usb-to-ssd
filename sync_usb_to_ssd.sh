@@ -49,50 +49,21 @@ log_prompt() {
 
 prompt_insert_device() {
 
-  local label="$1"
+  local device_label="$1"
   local insert_emoji="📥"
 
-  log_prompt "$insert_emoji Please plug in the $label and press enter to continue."
+  log_prompt "$insert_emoji Please plug in the $device_label and press enter to continue."
   read -r && printf "\033[A\r"
-
-}
-
-detect_newly_mounted_device() {
-
-  local label="$1"
-  shift
-  local before_mounts=("$@")
-  local check_emoji="✅"
-  local mount_label
-
-  mount_label=$(wait_for_new_mount "${before_mounts[@]}")
-  log "$check_emoji $label mounted as $mount_label"
-
-  echo "$mount_label"
-
-}
-
-safely_unmount_device() {
-
-  local label="$1"
-  local mount_point="$2"
-  local check_emoji="✅"
-  local dev
-
-  sleep 1
-  dev="$(lsblk -no PKNAME "$(findmnt -no SOURCE "$mount_point")")"
-  udisksctl unmount -b "$dev" >/dev/null 2>&1 || true
-  udisksctl power-off -b "$dev" >/dev/null 2>&1 || true
-  log "$check_emoji $label unmounted. It is now safe to unplug it."
+  sleep 2
 
 }
 
 prompt_unplug_device() {
 
-  local label="$1"
+  local device_label="$1"
   local unplug_emoji="🔌"
 
-  log_prompt "$unplug_emoji Please unplug the $label and press enter to continue."
+  log_prompt "$unplug_emoji Please unplug the $device_label and press enter to continue."
   read -r && printf "\033[A\r"
   sleep 2
 
@@ -102,18 +73,39 @@ wait_for_new_mount() {
 
   local before_mounts=("$@")
   local after_mounts=()
-  local label=""
+  local mount_label=""
+  local timeout=30
+  local elapsed=0
 
-  while true; do
+  while (( elapsed < timeout )); do
     sleep 1
-    mapfile -t after_mounts < <(ls "/media/$USER" 2>/dev/null)
-    for label in "${after_mounts[@]}"; do
-      if [[ ! " ${before_mounts[*]} " =~ " $label " ]]; then
-        echo "$label"
-        return
+    ((++elapsed))
+    mapfile -t after_mounts < <(ls "/media/$USER" 2>/dev/null || true)
+    for mount_label in "${after_mounts[@]}"; do
+      if [[ ! " ${before_mounts[*]} " =~ " $mount_label " ]]; then
+        echo "$mount_label"
+        return 0
       fi
     done
   done
+  return 1
+
+}
+
+safely_unmount_device() {
+
+  local device_label="$1"
+  local mount_point="$2"
+  local ok_emoji="✅"
+  local dev
+
+  sync
+  sleep 1
+  dev="$(lsblk -no PKNAME "$(findmnt -no SOURCE "$mount_point")")"
+  udisksctl unmount -b "$dev" >/dev/null 2>&1 || true
+  sleep 1
+  udisksctl power-off -b "$dev" >/dev/null 2>&1 || true
+  log "$ok_emoji $device_label unmounted. It is now safe to unplug it."
 
 }
 
@@ -123,13 +115,13 @@ generate_chunk_lists() {
   local chunk_index=0
   local chunk_size_bytes=$((CHUNK_SIZE_MB * 1024 * 1024))
   local search_emoji="🔍"
-  local check_emoji="✅"
+  local ok_emoji="✅"
   local resume_emoji="♻️"
   local warning_emoji="⚠️"
 
   if [[ -z $(ls "$STATE_DIR"/chunk_*.list 2>/dev/null) ]]; then
-    log "$search_emoji Splitting source files into chunks..."
-    find "$SOURCE_MOUNT" -type f -printf '%s %p\n' | sort -n > "$STATE_DIR/file_list.txt"
+    log "$search_emoji Splitting source files into chunks (this can take some time)..."
+    find "$SOURCE_MOUNT" -type f -printf '%s %P\n' | sort -n > "$STATE_DIR/file_list.txt"
     exec 3< "$STATE_DIR/file_list.txt"
     while read -r size path <&3; do
       if (( current_size + size > chunk_size_bytes )); then
@@ -140,7 +132,7 @@ generate_chunk_lists() {
       ((current_size += size)) || true
     done
     rm -f "$STATE_DIR/file_list.txt" || true
-    log "$check_emoji Created $((chunk_index + 1)) chunk list(s) in $STATE_DIR."
+    log "$ok_emoji Created $((chunk_index + 1)) chunk list(s) in $STATE_DIR."
   else
     log "$resume_emoji Resuming previous sync (from $STATE_DIR)."
     log "$warning_emoji Files added or changed on the USB stick after the original listing will NOT be synced."
@@ -148,11 +140,22 @@ generate_chunk_lists() {
 
 }
 
+# === Main function ===
 main() {
+
+  # Define local emojis for log messages
+  local ok_emoji="✅"
+  local warning_emoji="⚠️"
+  local error_emoji="❌"
+  local done_emoji="🎉"
+  local skip_emoji="⏭️ "
+  local chunk_emoji="📦"
+  local repeat_emoji="🔁"
+  local time_emoji="⏱️"
 
   # Remove .done markers if needed
   if $NORESUME; then
-    log "⚠️  '--noresume' option specified: removing .done markers (in $DONE_DIR) and chunk lists (in $STATE_DIR)."
+    log "$warning_emoji  '--noresume' option specified: removing .done markers (in $DONE_DIR) and chunk lists (in $STATE_DIR)."
     rm -rf "$DONE_DIR" "$STATE_DIR" "$TEMP_DIR"
   fi
 
@@ -164,7 +167,7 @@ main() {
   # Declare main locals
   local \
     start_msg \
-    label \
+    device_label \
     mount_label \
     direction \
     mount_point_var \
@@ -191,18 +194,18 @@ main() {
     CHUNK_FILE="${STATE_DIR}/chunk_${CHUNK_INDEX}.list"
     if $CHUNKS_GENERATED && [[ ! -f "$CHUNK_FILE" ]]; then
       if (( CHUNK_INDEX != CHUNK_COUNT )); then
-        log "⚠️  Expected $CHUNK_COUNT chunks, but reached missing chunk index $CHUNK_INDEX."
+        log "$warning_emoji  Expected $CHUNK_COUNT chunks, but reached missing chunk index $CHUNK_INDEX."
         log "   Possible cause: a chunk list file may have been deleted or renamed."
       else
-        log "🎉 All chunks have been synced from USB to SSD!"
+        log "$done_emoji All chunks have been synced from USB to SSD!"
       fi
       break
     fi
 
     # Skip to next chunk if current chunk already done
-    DONE_MARKER="${DONE_DIR}/${CHUNK_FILE%.list}.done"
+    DONE_MARKER="${DONE_DIR}/$(basename "${CHUNK_FILE%.list}").done"
     if [ $NORESUME == false ] && [ -f "$DONE_MARKER" ]; then
-      log "⏭️  Skipping $(basename "$CHUNK_FILE") (already done)."
+      log "$skip_emoji  Skipping $(basename "$CHUNK_FILE") (already done)."
       ((CURRENT++))
       continue
     fi
@@ -212,7 +215,7 @@ main() {
     [ -d "$CHUNK_TEMP_DIR" ] || mkdir -p "$CHUNK_TEMP_DIR"
 
     # Log start of chunk sync
-    start_msg="📦 Starting chunk #$CURRENT"
+    start_msg="$chunk_emoji Starting chunk #$CURRENT"
     [ "$CHUNK_COUNT" -gt 0 ] && start_msg+=" of $CHUNK_COUNT"
     start_msg+=" (using temporary directory ${CHUNK_TEMP_DIR})."
     log "$start_msg"
@@ -223,21 +226,26 @@ main() {
       # Define device label and mount point variable name
       case "$device" in
         src)
-          label="USB stick"
+          device_label="USB stick"
           mount_point_var=SOURCE_MOUNT
           ;;
         dst)
-          label="SSD"
+          device_label="SSD"
           mount_point_var=DEST_MOUNT
           ;;
       esac
 
       # Prompt for device insert and detect mount point
       mapfile -t before_mounts < <(ls -1 "/media/$USER" 2>/dev/null)
-      prompt_insert_device "$label"
-      mount_label=$(detect_newly_mounted_device "$label" "${before_mounts[@]}")
-      mount_point="/media/$USER/$mount_label"
-      printf -v "$mount_point_var" '%s' "$mount_point"
+      prompt_insert_device "$device_label"
+      if mount_label=$(wait_for_new_mount "${before_mounts[@]}"); then
+        mount_point="/media/$USER/$mount_label"
+        printf -v "$mount_point_var" '%s' "$mount_point"
+        log "$ok_emoji $device_label mounted as $mount_label"
+      else
+        log "$error_emoji Failed to detect new mount. Aborting."
+        exit 1
+      fi
 
       # Define sync direction, chunk source and target
       case "$device" in
@@ -267,24 +275,24 @@ main() {
       # Begin syncing (with possible retry)
       ATTEMPT=1
       while (( ATTEMPT <= MAX_RETRIES )); do
-        log "🔁 Attempt $ATTEMPT: Syncing chunk $CURRENT $direction ${label}..."
+        log "$repeat_emoji Attempt $ATTEMPT: Syncing chunk $CURRENT $direction ${device_label}..."
         if rsync "${RSYNC_OPTS[@]}" "$chunk_source/" "$chunk_target/"; then
-          log "✅ Chunk $CURRENT successfully synced $direction ${label}."
+          log "$ok_emoji Chunk $CURRENT successfully synced $direction ${device_label}."
           break
         else
-          log "⚠️  Rsync failed on attempt $ATTEMPT $direction ${label}."
+          log "$warning_emoji  Rsync failed on attempt $ATTEMPT $direction ${device_label}."
           ((ATTEMPT++))
           sleep 2
         fi
       done
       if (( ATTEMPT > MAX_RETRIES )); then
-        log "❌ Failed to sync chunk $CURRENT $direction $label after $MAX_RETRIES attempts. Aborting."
+        log "$error_emoji Failed to sync chunk $CURRENT $direction $device_label after $MAX_RETRIES attempts. Aborting."
         exit 1
       fi
 
       # Unmount and prompt to unplug device 
-      safely_unmount_device "$label" "$mount_point"
-      prompt_unplug_device "$label"
+      safely_unmount_device "$device_label" "$mount_point"
+      prompt_unplug_device "$device_label"
 
     done
 
@@ -296,7 +304,7 @@ main() {
     ELAPSED=$(( $(date +%s) - START_TIME ))
     AVG_TIME_PER_CHUNK=$(( ELAPSED / CURRENT ))
     REMAINING_TIME=$(( AVG_TIME_PER_CHUNK * (CHUNK_COUNT - CURRENT) ))
-    log "⏱️  Estimated time remaining: $(printf "%02d:%02d" $((REMAINING_TIME/60)) $((REMAINING_TIME%60)))"
+    log "$time_emoji Estimated time remaining: $(printf "%02d:%02d" $((REMAINING_TIME/60)) $((REMAINING_TIME%60)))"
 
     # Next chunk
     ((CURRENT++))
@@ -305,5 +313,6 @@ main() {
 
 }
 
+# === Run main function and exit gracefully ===
 main "$@"
 exit 0
