@@ -5,7 +5,7 @@ A chunked, resumable Bash script for safely syncing large amounts of data from a
 ## 🧠 When to Use
 
 This script is ideal if you:
-- Can only connect one USB-C device at a time (e.g., only one USB-C to USB-A adapter)
+- Can only connect one USB-C device at a time (e.g., only one USB-C to USB-A adapter is available)
 - Need to copy a large USB stick to an SSD but **don’t have enough internal disk space** to stage it all at once
 - Want a safe, robust, chunked solution that handles interruptions and retries
 
